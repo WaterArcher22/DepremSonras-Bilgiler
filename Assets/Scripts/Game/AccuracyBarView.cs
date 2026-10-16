@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 // Barın görseli. Dolgu Image'ının Image Type = Filled, Fill Method = Horizontal olmalı.
 // Pixel art'ta yumuşak dolgu bozuk görünmesin diye dolgu 1 piksellik adımlarla ilerler.
+// Bar kritik seviyeye inince yanıp söner ve alarm çalar.
 public class AccuracyBarView : MonoBehaviour
 {
     public AccuracyBar bar;
@@ -15,6 +16,10 @@ public class AccuracyBarView : MonoBehaviour
     public Color midColor = new Color(0.95f, 0.8f, 0.2f);
     public Color lowColor = new Color(0.95f, 0.3f, 0.3f);
 
+    [Header("Kritik seviye")]
+    [Range(0f, 1f)] public float criticalThreshold = 0.25f;
+    public float blinkSpeed = 6f;
+
     [Header("Yanlış kararda sarsıntı")]
     public RectTransform shakeTarget;
     public float shakeDuration = 0.25f;
@@ -22,6 +27,8 @@ public class AccuracyBarView : MonoBehaviour
 
     float shakeTimer;
     Vector2 basePos;
+    float current = 1f;
+    bool alarmOn;
 
     void OnEnable()
     {
@@ -34,18 +41,33 @@ public class AccuracyBarView : MonoBehaviour
     {
         bar.OnChanged -= UpdateFill;
         bar.OnBurst -= Shake;
+        SetAlarm(false);
     }
 
     void UpdateFill(float t)
     {
+        current = t;
         fill.fillAmount = Mathf.Floor(t * pixelWidth) / pixelWidth;
-        fill.color = t > 0.5f ? highColor : t > 0.25f ? midColor : lowColor;
+        SetAlarm(t > 0f && t < criticalThreshold);
+    }
+
+    void SetAlarm(bool on)
+    {
+        if (alarmOn == on) return;
+        alarmOn = on;
+        AudioManager.SetAlarm(on);
     }
 
     void Shake() => shakeTimer = shakeDuration;
 
     void Update()
     {
+        // Renk ve kritik seviyede yanıp sönme
+        Color c = current > 0.5f ? highColor : current > criticalThreshold ? midColor : lowColor;
+        if (current < criticalThreshold && Mathf.FloorToInt(Time.time * blinkSpeed) % 2 == 0)
+            c = Color.Lerp(c, Color.white, 0.6f);
+        fill.color = c;
+
         if (!shakeTarget) return;
 
         if (shakeTimer > 0f)

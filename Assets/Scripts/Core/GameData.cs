@@ -17,6 +17,9 @@ public enum Region
 public enum ServiceType { Water, Food, Tent }   // Haritada işaretle görünür
 public enum TeamType { Rescue, Fire }           // Görevlendirme raporunda görünür
 
+// Bir bilginin hangi cihazdan doğrulanacağı
+public enum EvidenceSource { Map, Report, Laptop }
+
 public enum Road                                // Laptopta görünür
 {
     RavenwoodBoulevard,

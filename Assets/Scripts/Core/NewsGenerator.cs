@@ -1,14 +1,33 @@
+using System;
 using System.Collections.Generic;
-using UnityEngine;
+using Random = UnityEngine.Random;
 
-public enum EvidenceSource { Map, Report, Laptop }
-
+// Bir haber. Doğruluğu dünyaya bakılarak hesaplanır;
+// böylece dünya değişirse ekrandaki haberin doğru cevabı da değişebilir.
 public class NewsItem
 {
     public string headline;
-    public bool isTrue;            // Doğruysa PAYLAŞ, yanlışsa SİL doğru karardır
-    public string explanation;     // Karardan sonra gösterilen öğretici açıklama
-    public EvidenceSource source;  // Doğrulamak için bakılması gereken eşya
+    public EvidenceSource source;   // Doğrulamak için bakılması gereken cihaz
+
+    Func<bool> check;               // Dünyanın şu anki haline göre doğru mu?
+    Func<string> explain;           // Dünyanın şu anki haline göre açıklama
+    bool truthAtCreation;
+    string explanationAtCreation;
+
+    public NewsItem(string headline, EvidenceSource source, Func<bool> check, Func<string> explain)
+    {
+        this.headline = headline;
+        this.source = source;
+        this.check = check;
+        this.explain = explain;
+        truthAtCreation = check();
+        explanationAtCreation = explain();
+    }
+
+    // live = true  -> dünya değiştiyse güncel duruma göre
+    // live = false -> haber ilk geldiği andaki duruma göre
+    public bool IsTrue(bool live) => live ? check() : truthAtCreation;
+    public string Explanation(bool live) => live ? explain() : explanationAtCreation;
 }
 
 // Dünyaya bakarak doğru veya yanlış haber üretir.
@@ -92,57 +111,55 @@ public class NewsGenerator
 
     NewsItem ServiceNews(bool makeTrue)
     {
+        var w = world;
         var service = Utils.Pick(WorldState.AllServices);
-        var candidates = world.RegionsWithService(service, makeTrue);
+        var candidates = w.RegionsWithService(service, makeTrue);
         if (candidates.Count == 0) return null;
 
         var region = Utils.Pick(candidates);
         string name = GameNames.Of(region);
+        string serviceName = GameNames.Of(service);
 
-        return new NewsItem
-        {
-            headline = string.Format(Utils.Pick(serviceTemplates[service]), name),
-            isTrue = makeTrue,
-            source = EvidenceSource.Map,
-            explanation = makeTrue
-                ? $"Haritada {name} bölgesinde {GameNames.Of(service)} işareti var."
-                : $"Haritada {name} bölgesinde {GameNames.Of(service)} işareti yok."
-        };
+        return new NewsItem(
+            string.Format(Utils.Pick(serviceTemplates[service]), name),
+            EvidenceSource.Map,
+            () => w.HasService(region, service),
+            () => w.HasService(region, service)
+                ? $"Haritada {name} bölgesinde {serviceName} işareti var."
+                : $"Haritada {name} bölgesinde {serviceName} işareti yok.");
     }
 
     NewsItem TeamNews(bool makeTrue)
     {
+        var w = world;
         var type = Random.value < 0.5f ? TeamType.Rescue : TeamType.Fire;
-        var candidates = world.RegionsWithTeam(type, makeTrue);
+        var candidates = w.RegionsWithTeam(type, makeTrue);
         if (candidates.Count == 0) return null;
 
         var region = Utils.Pick(candidates);
         string name = GameNames.Of(region);
+        string teamName = GameNames.Of(type);
 
-        return new NewsItem
-        {
-            headline = string.Format(Utils.Pick(teamTemplates[type]), name),
-            isTrue = makeTrue,
-            source = EvidenceSource.Report,
-            explanation = makeTrue
-                ? $"Görevlendirme raporuna göre {name} bölgesinde {GameNames.Of(type)} çalışıyor."
-                : $"Görevlendirme raporunda {name} bölgesine {GameNames.Of(type)} atanmamış."
-        };
+        return new NewsItem(
+            string.Format(Utils.Pick(teamTemplates[type]), name),
+            EvidenceSource.Report,
+            () => w.HasTeam(region, type),
+            () => w.HasTeam(region, type)
+                ? $"Görevlendirme raporuna göre {name} bölgesinde {teamName} çalışıyor."
+                : $"Görevlendirme raporunda {name} bölgesine {teamName} atanmamış.");
     }
 
     NewsItem RoadNews(bool makeTrue)
     {
+        var w = world;
         var road = Utils.Pick(WorldState.AllRoads);
-        bool actuallyOpen = world.roadOpen[road];
-        bool claimOpen = makeTrue ? actuallyOpen : !actuallyOpen;
+        bool claimOpen = makeTrue ? w.roadOpen[road] : !w.roadOpen[road];
         string name = GameNames.Of(road);
 
-        return new NewsItem
-        {
-            headline = string.Format(Utils.Pick(claimOpen ? roadOpenTemplates : roadClosedTemplates), name),
-            isTrue = makeTrue,
-            source = EvidenceSource.Laptop,
-            explanation = $"Laptopta {name} {(actuallyOpen ? "yeşil, yani açık" : "kırmızı, yani kapalı")}."
-        };
+        return new NewsItem(
+            string.Format(Utils.Pick(claimOpen ? roadOpenTemplates : roadClosedTemplates), name),
+            EvidenceSource.Laptop,
+            () => w.roadOpen[road] == claimOpen,
+            () => $"Laptopta {name} {(w.roadOpen[road] ? "yeşil, yani açık" : "kırmızı, yani kapalı")}.");
     }
 }

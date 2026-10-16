@@ -80,6 +80,90 @@ public class WorldState
         return w;
     }
 
+    // ===== OYUN SIRASINDA DEĞİŞİMLER =====
+
+    // Dünyada bir şey değiştiğinde hangi cihazın güncellendiğini bildirir
+    public event Action<EvidenceSource> OnChanged;
+
+    public void SetRoad(Road road, bool open)
+    {
+        if (roadOpen[road] == open) return;
+        roadOpen[road] = open;
+        OnChanged?.Invoke(EvidenceSource.Laptop);
+    }
+
+    public void SetService(Region region, ServiceType service, bool on)
+    {
+        if (HasService(region, service) == on) return;
+        if (on) services[region].Add(service);
+        else services[region].Remove(service);
+        OnChanged?.Invoke(EvidenceSource.Map);
+    }
+
+    // Bu türden rastgele bir ekibe yeni bir bölge ekler
+    public void AddTeamToRegion(TeamType type, Region region)
+    {
+        if (HasTeam(region, type)) return;
+        var candidates = teams.Where(t => t.type == type).ToList();
+        if (candidates.Count == 0) return;
+        Utils.Pick(candidates).regions.Add(region);
+        OnChanged?.Invoke(EvidenceSource.Report);
+    }
+
+    // Bir ekibi bir bölgeden alıp başka bir bölgeye kaydırır
+    bool MoveRandomTeam()
+    {
+        var team = Utils.Pick(teams);
+        var free = AllRegions.Where(r => !team.regions.Contains(r)).ToList();
+        if (team.regions.Count == 0 || free.Count == 0) return false;
+
+        team.regions.Remove(Utils.Pick(team.regions));
+        team.regions.Add(Utils.Pick(free));
+        OnChanged?.Invoke(EvidenceSource.Report);
+        return true;
+    }
+
+    bool ChangeRandomService()
+    {
+        var service = Utils.Pick(AllServices);
+        var with = RegionsWithService(service, true);
+        var without = RegionsWithService(service, false);
+
+        // Her hizmet en az 1 bölgede kalsın
+        bool add;
+        if (with.Count <= 1) add = true;
+        else if (without.Count == 0) add = false;
+        else add = UnityEngine.Random.value < 0.5f;
+
+        if (add && without.Count > 0) SetService(Utils.Pick(without), service, true);
+        else if (!add) SetService(Utils.Pick(with), service, false);
+        else return false;
+        return true;
+    }
+
+    // Rastgele tek bir değişiklik yapar
+    public void RandomChange()
+    {
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            switch (UnityEngine.Random.Range(0, 3))
+            {
+                case 0:
+                    var road = Utils.Pick(AllRoads);
+                    SetRoad(road, !roadOpen[road]);
+                    return;
+                case 1:
+                    if (ChangeRandomService()) return;
+                    break;
+                default:
+                    if (MoveRandomTeam()) return;
+                    break;
+            }
+        }
+    }
+
+    // ===== SORGULAR =====
+
     public bool HasService(Region r, ServiceType s) => services[r].Contains(s);
 
     public bool HasTeam(Region r, TeamType t) =>
