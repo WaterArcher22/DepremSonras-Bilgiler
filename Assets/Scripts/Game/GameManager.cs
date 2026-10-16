@@ -2,12 +2,37 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
-// GameScene'in beyni: dünyayı kurar, haberleri sırayla getirir, kararları değerlendirir, oyunu bitirir.
+// GameScene'in beyni: dünyayı kurar ve değiştirir, haberleri getirir, kararları değerlendirir, oyunu bitirir.
 public class GameManager : MonoBehaviour
 {
     [Header("Dünya ayarları (her run rastgele)")]
     public WorldState.Settings worldSettings = new WorldState.Settings();
     [Range(0f, 1f)] public float trueNewsChance = 0.5f;
+
+    [Header("Haber süresi")]
+    [Tooltip("İlk haberin süresi (saniye)")]
+    public float newsDurationStart = 12f;
+    [Tooltip("Sürenin inebileceği en düşük değer")]
+    public float newsDurationMin = 6f;
+    [Tooltip("Her yeni haberde süreden düşülen miktar")]
+    public float newsDurationDecrease = 0.25f;
+    [Tooltip("Açık: süre dolan haber kendiliğinden yayılır (Paylaş sayılır). Kapalı: sadece ceza.")]
+    public bool timeoutCountsAsShare = true;
+    [Tooltip("timeoutCountsAsShare kapalıyken süre dolunca verilen ceza")]
+    public float missPenalty = 10f;
+
+    [Header("Dünya değişimleri")]
+    public bool enableWorldChanges = true;
+    [Tooltip("Açık: dünya değişince ekrandaki haberin doğru cevabı da değişir")]
+    public bool liveTruth = true;
+    [Tooltip("İlk değişikliğe kadar geçen süre")]
+    public float firstChangeDelay = 20f;
+    [Tooltip("Başlangıçta iki değişiklik arası süre")]
+    public float changeIntervalStart = 30f;
+    [Tooltip("Oyun ilerledikçe inilen en kısa aralık")]
+    public float changeIntervalEnd = 12f;
+    [Tooltip("Aralığın en kısaya inmesi için geçen süre (saniye)")]
+    public float changeRampDuration = 180f;
 
     [Header("Bağlantılar")]
     public AccuracyBar accuracyBar;
@@ -15,6 +40,12 @@ public class GameManager : MonoBehaviour
     public Button shareButton;
     public Button deleteButton;
     public FeedbackView feedback;
+    [Tooltip("Haberin altındaki süre çubuğu (isteğe bağlı)")]
+    public TimerBarView newsTimer;
+    [Tooltip("PAYLAŞILDI / SİLİNDİ damgası (isteğe bağlı)")]
+    public StampView stamp;
+    [Tooltip("Odaya gelen kişi (isteğe bağlı)")]
+    public VisitorManager visitorManager;
 
     [Header("Masa pencereleri")]
     public MapWindow mapWindow;
@@ -29,20 +60,27 @@ public class GameManager : MonoBehaviour
 
     public WorldState World { get; private set; }
     public float ElapsedTime { get; private set; }
+    public bool IsGameOver => gameOver;
+    public AccuracyBar Bar => accuracyBar;
+    public FeedbackView Feedback => feedback;
 
     NewsGenerator generator;
     NewsItem currentNews;
+    float newsTimeLeft, currentNewsDuration;
+    int newsCount;
+    float nextChangeTime;
+    DeskItem[] deskItems;
     int correct, wrong;
     bool gameOver;
 
     void Start()
     {
         World = WorldState.Generate(worldSettings);
+        World.OnChanged += HandleWorldChanged;
         generator = new NewsGenerator(World, trueNewsChance);
 
-        mapWindow.Setup(World);
-        reportWindow.Setup(World);
-        laptopWindow.Setup(World);
+        RefreshWindows();
+        deskItems = FindObjectsByType<DeskItem>(FindObjectsSortMode.None);
 
         shareButton.onClick.AddListener(() => Decide(true));
         deleteButton.onClick.AddListener(() => Decide(false));
@@ -52,36 +90,108 @@ public class GameManager : MonoBehaviour
         accuracyBar.ResetBar();
         accuracyBar.IsRunning = true;
 
+        nextChangeTime = firstChangeDelay;
+        if (visitorManager) visitorManager.Begin(this);
+
         ShowNextNews();
+    }
+
+    void OnDestroy()
+    {
+        if (World != null) World.OnChanged -= HandleWorldChanged;
     }
 
     void Update()
     {
-        if (!gameOver) ElapsedTime += Time.deltaTime;
+        if (gameOver) return;
+        ElapsedTime += Time.deltaTime;
+        UpdateNewsTimer();
+        UpdateWorldChanges();
     }
+
+    // ---------- Haberler ----------
 
     void ShowNextNews()
     {
         if (gameOver) return;
         currentNews = generator.Next();
+        currentNewsDuration = Mathf.Max(newsDurationMin, newsDurationStart - newsDurationDecrease * newsCount);
+        newsTimeLeft = currentNewsDuration;
+        newsCount++;
+
         tv.Show(currentNews.headline);
         SetButtons(true);
+    }
+
+    void UpdateNewsTimer()
+    {
+        if (currentNews == null)
+        {
+            if (newsTimer) newsTimer.SetNormalized(0f);
+            return;
+        }
+
+        newsTimeLeft -= Time.deltaTime;
+        if (newsTimer) newsTimer.SetNormalized(newsTimeLeft / currentNewsDuration);
+        if (newsTimeLeft <= 0f) NewsTimedOut();
     }
 
     // share = true -> PAYLAŞ, false -> SİL
     void Decide(bool share)
     {
         if (gameOver || currentNews == null) return;
+
+        bool isTrue = currentNews.IsTrue(liveTruth);
+        string explanation = currentNews.Explanation(liveTruth);
+        bool isCorrect = share == isTrue;
+
+        if (stamp) stamp.ShowDecision(share);
+
+        if (isCorrect) { correct++; accuracyBar.ApplyCorrect(); GameJuice.Correct(); }
+        else           { wrong++;   accuracyBar.ApplyWrong();   GameJuice.Wrong(); }
+
+        feedback.Show(isCorrect, explanation);
+        FinishNews();
+    }
+
+    void NewsTimedOut()
+    {
+        bool isTrue = currentNews.IsTrue(liveTruth);
+        string explanation = currentNews.Explanation(liveTruth);
+        AudioManager.Play(Sfx.Timeout);
+
+        if (timeoutCountsAsShare)
+        {
+            if (stamp) stamp.Show("YAYILDI!", GameJuice.WarnColor);
+
+            if (isTrue)
+            {
+                // Doğru haber yayıldı: ödül de ceza da yok
+                feedback.Show("ZAMAN DOLDU", GameJuice.WarnColor, "Haber kendiliğinden yayıldı, neyse ki doğruydu. " + explanation);
+            }
+            else
+            {
+                wrong++;
+                accuracyBar.ApplyWrong();
+                GameJuice.Wrong();
+                feedback.Show("YANLIŞ HABER YAYILDI!", GameJuice.BadColor, explanation);
+            }
+        }
+        else
+        {
+            wrong++;
+            accuracyBar.ApplyWrong(missPenalty);
+            GameJuice.Wrong();
+            feedback.Show("ZAMAN DOLDU!", GameJuice.BadColor, "Haber hakkında karar verilmedi. " + explanation);
+        }
+
+        FinishNews();
+    }
+
+    void FinishNews()
+    {
         SetButtons(false);
-
-        bool isCorrect = share == currentNews.isTrue;
-
-        if (isCorrect) { correct++; accuracyBar.ApplyCorrect(); }
-        else           { wrong++;   accuracyBar.ApplyWrong(); }
-
-        feedback.Show(isCorrect, currentNews.explanation);
         currentNews = null;
-
         if (!gameOver) StartCoroutine(NextAfterDelay());
     }
 
@@ -98,12 +208,58 @@ public class GameManager : MonoBehaviour
         deleteButton.interactable = on;
     }
 
+    // ---------- Dünya değişimleri ----------
+
+    void UpdateWorldChanges()
+    {
+        if (!enableWorldChanges || ElapsedTime < nextChangeTime) return;
+
+        World.RandomChange();
+
+        float t = Mathf.Clamp01(ElapsedTime / Mathf.Max(1f, changeRampDuration));
+        float interval = Mathf.Lerp(changeIntervalStart, changeIntervalEnd, t) * Random.Range(0.75f, 1.25f);
+        nextChangeTime = ElapsedTime + interval;
+    }
+
+    void HandleWorldChanged(EvidenceSource source)
+    {
+        RefreshWindows();
+        AudioManager.Play(Sfx.DeviceUpdate);
+
+        // Neyin değiştiği söylenmez; sadece ilgili cihaz yanıp söner
+        foreach (var item in deskItems)
+            if (item && item.source == source) item.StartBlink();
+    }
+
+    void RefreshWindows()
+    {
+        mapWindow.Setup(World);
+        reportWindow.Setup(World);
+        laptopWindow.Setup(World);
+    }
+
+    // ---------- Diğer sistemler için ----------
+
+    // Ziyaretçi gibi diğer sistemlerin sonuçlarını sayar
+    public void CountResult(bool wasCorrect)
+    {
+        if (wasCorrect) correct++;
+        else wrong++;
+    }
+
+    // ---------- Oyun sonu ----------
+
     void EndGame()
     {
         if (gameOver) return;
         gameOver = true;
+        currentNews = null;
         SetButtons(false);
         StopAllCoroutines();
+
+        if (visitorManager) visitorManager.Stop();
+        DeskWindow.CloseAll();
+        AudioManager.SetAlarm(false);
 
         GameSession.SurvivedSeconds = ElapsedTime;
         GameSession.CorrectCount = correct;

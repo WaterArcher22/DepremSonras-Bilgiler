@@ -1,39 +1,48 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 // Masadaki tıklanabilir eşya (harita, rapor, laptop).
-// Sahnede BoxCollider2D ile kullanılır (kamerada Physics 2D Raycaster gerekir).
-// Fare üzerine gelince collider'ın etrafına otomatik olarak piksel çerçeve çizer.
-// Canvas içinde UI Image olarak da çalışır (o durumda çerçeve yerine renk değişir).
+// Sahnede Collider2D ile kullanılır (kamerada Physics 2D Raycaster gerekir).
+// - Fare üzerine gelince collider'ın ŞEKLİNİ takip eden yeşil piksel çerçeve çizer
+//   (PolygonCollider2D, BoxCollider2D, CircleCollider2D; birden fazla collider da olur).
+// - Bilgisi güncellenince, oyuncu tıklayana kadar turuncu çerçeveyle yanıp söner.
 public class DeskItem : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
 {
     public DeskWindow window;
+    [Tooltip("Bu eşya hangi bilgiyi gösteriyor? Değişince bu eşya yanıp söner.")]
+    public EvidenceSource source;
 
-    [Header("Çerçeve (BoxCollider2D varsa)")]
+    [Header("Çerçeve")]
     public bool showFrame = true;
     public Color frameColor = new Color(0.3f, 1f, 0.4f);
-    [Tooltip("Çerçeve kalınlığı (piksel)")]
-    public int frameThickness = 1;
-    [Tooltip("Çerçevenin collider'dan ne kadar dışarıda olacağı (piksel)")]
-    public int framePadding = 1;
+    [Tooltip("Çizgi kalınlığı (piksel)")]
+    [Range(1, 4)] public int frameThickness = 1;
     [Tooltip("Sprite'larınızın Pixels Per Unit değeri")]
     public int pixelsPerUnit = 16;
     [Tooltip("Boş bırakılırsa en öndeki Sorting Layer kullanılır")]
     public string frameSortingLayer = "";
     public int frameSortingOrder = 100;
 
+    [Header("Güncelleme uyarısı")]
+    public Color blinkColor = new Color(1f, 0.65f, 0.15f);
+    [Tooltip("Yanıp sönme hızı (saniye)")]
+    public float blinkInterval = 0.25f;
+
     [Header("Sprite / Image varsa")]
     [Tooltip("Kenarı parlayan versiyon (isteğe bağlı)")]
     public Sprite highlightSprite;
     public Color hoverTint = new Color(1f, 1f, 0.75f);
 
+    public bool IsBlinking => blinking;
+
     Image image;
     SpriteRenderer spriteRenderer;
     Sprite normalSprite;
     GameObject frame;
-
-    static Sprite pixelSprite;
+    SpriteRenderer frameRenderer;
+    bool hovering, blinking;
 
     void Awake()
     {
@@ -43,39 +52,54 @@ public class DeskItem : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
         if (image) normalSprite = image.sprite;
         else if (spriteRenderer) normalSprite = spriteRenderer.sprite;
 
-        // Eşyadaki tüm collider'ları kapsayan tek bir çerçeve
-        var colliders = GetComponents<Collider2D>();
-        if (showFrame && colliders.Length > 0)
-        {
-            Bounds all = colliders[0].bounds;
-            for (int i = 1; i < colliders.Length; i++)
-                all.Encapsulate(colliders[i].bounds);
-            BuildFrame(all);
-        }
+        if (showFrame) BuildFrame();
     }
+
+    // ---------- Dışarıdan ----------
+
+    public void StartBlink() => blinking = true;
+    public void StopBlink() => blinking = false;
 
     // ---------- Tıklama ve fare ----------
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        StopBlink();
         if (window) window.Toggle();
     }
 
-    public void OnPointerEnter(PointerEventData eventData) => SetHover(true);
-    public void OnPointerExit(PointerEventData eventData) => SetHover(false);
+    public void OnPointerEnter(PointerEventData eventData) => hovering = true;
+    public void OnPointerExit(PointerEventData eventData) => hovering = false;
 
-    void OnDisable() => SetHover(false);
-
-    void SetHover(bool on)
+    void OnDisable()
     {
-        if (frame) frame.SetActive(on);
+        hovering = false;
+        if (frame) frame.SetActive(false);
+    }
 
+    void Update()
+    {
+        bool blinkOn = blinking && Mathf.FloorToInt(Time.time / blinkInterval) % 2 == 0;
+
+        if (frame)
+        {
+            if (hovering)       { frame.SetActive(true); frameRenderer.color = frameColor; }
+            else if (blinkOn)   { frame.SetActive(true); frameRenderer.color = blinkColor; }
+            else                { frame.SetActive(false); }
+        }
+
+        // Sprite / Image ile çalışan eşyalar için
         if (image || spriteRenderer)
         {
-            if (on && highlightSprite) SetSprite(highlightSprite);
-            else SetSprite(normalSprite);
+            SetSprite(hovering && highlightSprite ? highlightSprite : normalSprite);
 
-            SetColor(on && !highlightSprite && !frame ? hoverTint : Color.white);
+            Color c = Color.white;
+            if (!frame)
+            {
+                if (hovering && !highlightSprite) c = hoverTint;
+                else if (blinkOn) c = blinkColor;
+            }
+            SetColor(c);
         }
     }
 
@@ -91,65 +115,156 @@ public class DeskItem : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
         else if (spriteRenderer) spriteRenderer.color = c;
     }
 
-    // ---------- Çerçeve ----------
+    // ---------- Çerçeve: collider şekli piksel piksel bir dokuya çizilir ----------
 
-    void BuildFrame(Bounds b)
+    void BuildFrame()
     {
-        if (!pixelSprite)
+        // 1) Tüm collider'ların kenarlarını dünya koordinatında topla
+        var outlines = new List<Vector2[]>();
+        foreach (var col in GetComponents<Collider2D>())
+            CollectOutlines(col, outlines);
+        if (outlines.Count == 0) return;
+
+        // 2) Hepsini kapsayan alanı piksel ızgarasına oturt
+        float px = 1f / pixelsPerUnit;
+        float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+        foreach (var path in outlines)
+            foreach (var p in path)
+            {
+                minX = Mathf.Min(minX, p.x); minY = Mathf.Min(minY, p.y);
+                maxX = Mathf.Max(maxX, p.x); maxY = Mathf.Max(maxY, p.y);
+            }
+
+        int margin = frameThickness + 1;
+        float originX = Mathf.Floor(minX / px) * px - margin * px;
+        float originY = Mathf.Floor(minY / px) * px - margin * px;
+        int width  = Mathf.CeilToInt((maxX - originX) / px) + margin + 1;
+        int height = Mathf.CeilToInt((maxY - originY) / px) + margin + 1;
+
+        // 3) Kenarları dokuya çiz (Bresenham)
+        var pixels = new Color32[width * height];
+        var white = new Color32(255, 255, 255, 255);
+
+        foreach (var path in outlines)
         {
-            var tex = new Texture2D(1, 1) { filterMode = FilterMode.Point };
-            tex.SetPixel(0, 0, Color.white);
-            tex.Apply();
-            pixelSprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
+            for (int i = 0; i < path.Length; i++)
+            {
+                Vector2 a = path[i];
+                Vector2 b = path[(i + 1) % path.Length];
+                int x0 = Mathf.RoundToInt((a.x - originX) / px), y0 = Mathf.RoundToInt((a.y - originY) / px);
+                int x1 = Mathf.RoundToInt((b.x - originX) / px), y1 = Mathf.RoundToInt((b.y - originY) / px);
+                DrawLine(pixels, width, height, x0, y0, x1, y1, white);
+            }
         }
 
-        float px = 1f / pixelsPerUnit;
+        var tex = new Texture2D(width, height, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Point,
+            wrapMode = TextureWrapMode.Clamp
+        };
+        tex.SetPixels32(pixels);
+        tex.Apply();
 
-        // Collider'ların dünya üzerindeki sınırları, piksel ızgarasına oturtulmuş
-        float left   = Snap(b.min.x, px) - framePadding * px;
-        float right  = Snap(b.max.x, px) + framePadding * px;
-        float bottom = Snap(b.min.y, px) - framePadding * px;
-        float top    = Snap(b.max.y, px) + framePadding * px;
+        var sprite = Sprite.Create(tex, new Rect(0, 0, width, height), Vector2.zero, pixelsPerUnit);
 
-        float t = frameThickness * px;
-        float w = right - left;
-        float h = top - bottom;
-
-        // Dünya merkezinde oluşturup eşyanın altına taşı (dünya konumu korunur)
+        // 4) Dokuyu gösteren obje (ebeveynin ölçeğinden etkilenmez)
         frame = new GameObject("HoverFrame");
-        frame.transform.SetParent(transform, true);
+        frame.transform.SetParent(transform, false);
+        frame.transform.position = new Vector3(originX, originY, transform.position.z);
+        frame.transform.rotation = Quaternion.identity;
+        Vector3 s = transform.lossyScale;
+        frame.transform.localScale = new Vector3(
+            1f / Mathf.Max(Mathf.Abs(s.x), 0.0001f),
+            1f / Mathf.Max(Mathf.Abs(s.y), 0.0001f),
+            1f);
 
-        // Üst, alt, sol, sağ kenarlar
-        CreateEdge(new Vector2(left + w / 2f, top - t / 2f),    new Vector2(w, t));
-        CreateEdge(new Vector2(left + w / 2f, bottom + t / 2f), new Vector2(w, t));
-        CreateEdge(new Vector2(left + t / 2f, bottom + h / 2f), new Vector2(t, h));
-        CreateEdge(new Vector2(right - t / 2f, bottom + h / 2f), new Vector2(t, h));
+        frameRenderer = frame.AddComponent<SpriteRenderer>();
+        frameRenderer.sprite = sprite;
+        frameRenderer.color = frameColor;
+        var layers = SortingLayer.layers;
+        frameRenderer.sortingLayerName = string.IsNullOrEmpty(frameSortingLayer)
+            ? layers[layers.Length - 1].name
+            : frameSortingLayer;
+        frameRenderer.sortingOrder = frameSortingOrder;
 
         frame.SetActive(false);
     }
 
-    void CreateEdge(Vector2 center, Vector2 size)
+    void CollectOutlines(Collider2D col, List<Vector2[]> outlines)
     {
-        var edge = new GameObject("Edge");
-        edge.transform.SetParent(frame.transform, true);
-        edge.transform.position = new Vector3(center.x, center.y, transform.position.z);
+        var t = col.transform;
 
-        // Ebeveyn ölçeğinden etkilenmesin
-        Vector3 parentScale = frame.transform.lossyScale;
-        edge.transform.localScale = new Vector3(
-            size.x / Mathf.Max(parentScale.x, 0.0001f),
-            size.y / Mathf.Max(parentScale.y, 0.0001f),
-            1f);
-
-        var sr = edge.AddComponent<SpriteRenderer>();
-        sr.sprite = pixelSprite;
-        sr.color = frameColor;
-        var layers = SortingLayer.layers;
-        sr.sortingLayerName = string.IsNullOrEmpty(frameSortingLayer)
-            ? layers[layers.Length - 1].name
-            : frameSortingLayer;
-        sr.sortingOrder = frameSortingOrder;
+        if (col is PolygonCollider2D poly)
+        {
+            for (int i = 0; i < poly.pathCount; i++)
+            {
+                var local = poly.GetPath(i);
+                var world = new Vector2[local.Length];
+                for (int j = 0; j < local.Length; j++)
+                    world[j] = t.TransformPoint(local[j] + poly.offset);
+                outlines.Add(world);
+            }
+        }
+        else if (col is BoxCollider2D box)
+        {
+            Vector2 h = box.size / 2f, o = box.offset;
+            outlines.Add(new Vector2[]
+            {
+                t.TransformPoint(o + new Vector2(-h.x, -h.y)),
+                t.TransformPoint(o + new Vector2( h.x, -h.y)),
+                t.TransformPoint(o + new Vector2( h.x,  h.y)),
+                t.TransformPoint(o + new Vector2(-h.x,  h.y)),
+            });
+        }
+        else if (col is CircleCollider2D circle)
+        {
+            const int segments = 32;
+            var world = new Vector2[segments];
+            for (int i = 0; i < segments; i++)
+            {
+                float a = i * Mathf.PI * 2f / segments;
+                world[i] = t.TransformPoint(circle.offset + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * circle.radius);
+            }
+            outlines.Add(world);
+        }
+        else
+        {
+            // Diğer türler için sınır kutusu
+            Bounds b = col.bounds;
+            outlines.Add(new Vector2[]
+            {
+                new Vector2(b.min.x, b.min.y), new Vector2(b.max.x, b.min.y),
+                new Vector2(b.max.x, b.max.y), new Vector2(b.min.x, b.max.y),
+            });
+        }
     }
 
-    static float Snap(float v, float step) => Mathf.Round(v / step) * step;
+    void DrawLine(Color32[] pixels, int w, int h, int x0, int y0, int x1, int y1, Color32 c)
+    {
+        int dx = Mathf.Abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        int dy = -Mathf.Abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        int err = dx + dy;
+
+        while (true)
+        {
+            Plot(pixels, w, h, x0, y0, c);
+            if (x0 == x1 && y0 == y1) break;
+            int e2 = 2 * err;
+            if (e2 >= dy) { err += dy; x0 += sx; }
+            if (e2 <= dx) { err += dx; y0 += sy; }
+        }
+    }
+
+    void Plot(Color32[] pixels, int w, int h, int x, int y, Color32 c)
+    {
+        // Kalınlık: noktanın etrafını da boya
+        int r = frameThickness - 1;
+        for (int ox = -r; ox <= r; ox++)
+            for (int oy = -r; oy <= r; oy++)
+            {
+                int px = x + ox, py = y + oy;
+                if (px >= 0 && px < w && py >= 0 && py < h)
+                    pixels[py * w + px] = c;
+            }
+    }
 }

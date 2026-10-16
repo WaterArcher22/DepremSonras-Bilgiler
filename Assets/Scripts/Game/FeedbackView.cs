@@ -17,10 +17,13 @@ public class FeedbackView : MonoBehaviour
 
     void Awake() => root.SetActive(false);
 
-    public void Show(bool correct, string explanation)
+    public void Show(bool correct, string explanation) =>
+        Show(correct ? "DOĞRU KARAR!" : "YANLIŞ KARAR!", correct ? correctColor : wrongColor, explanation);
+
+    public void Show(string title, Color color, string explanation)
     {
-        titleText.text = correct ? "DOĞRU KARAR!" : "YANLIŞ KARAR!";
-        titleText.color = correct ? correctColor : wrongColor;
+        titleText.text = title;
+        titleText.color = color;
         explanationText.text = explanation;
         root.SetActive(true);
 

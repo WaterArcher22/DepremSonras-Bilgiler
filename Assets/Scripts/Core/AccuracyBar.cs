@@ -46,12 +46,15 @@ public class AccuracyBar : MonoBehaviour
         Change(-currentDrain * Time.deltaTime);
     }
 
-    public void ApplyCorrect() => Change(correctReward);
+    public void ApplyCorrect() => ApplyCorrect(correctReward);
+    public void ApplyCorrect(float amount) => Change(amount);
 
-    public void ApplyWrong()
+    public void ApplyWrong() => ApplyWrong(wrongPenalty);
+    public void ApplyWrong(float amount)
     {
+        if (!IsRunning) return;
         OnBurst?.Invoke();
-        Change(-wrongPenalty);
+        Change(-amount);
     }
 
     void Change(float amount)
