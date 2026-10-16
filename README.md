@@ -1,0 +1,2 @@
+# DepremSonrasıBilgiler
+a
