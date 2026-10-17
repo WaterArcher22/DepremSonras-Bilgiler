@@ -6,10 +6,12 @@ public class StartMenu : MonoBehaviour
 {
     public Button playButton;
     public Button quitButton;
+    [Tooltip("Açıksa Başla'dan sonra önce giriş (SON DAKİKA) sahnesi oynar")]
+    public bool playIntro = true;
 
     void Start()
     {
-        playButton.onClick.AddListener(GameSession.LoadGame);
+        playButton.onClick.AddListener(() => { if (playIntro) GameSession.LoadIntro(); else GameSession.LoadGame(); });
 
         if (quitButton)
         {
