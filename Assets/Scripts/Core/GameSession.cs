@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 public static class GameSession
 {
     public const string StartScene = "StartScene";
+    public const string IntroScene = "IntroScene";
     public const string GameScene = "GameScene";
     public const string EndScene = "EndScene";
 
@@ -19,6 +20,7 @@ public static class GameSession
     public static bool IsNewRecord;
 
     public static void LoadStart() => SceneManager.LoadScene(StartScene);
+    public static void LoadIntro() => SceneManager.LoadScene(IntroScene);
     public static void LoadGame() => SceneManager.LoadScene(GameScene);
     public static void LoadEnd() => SceneManager.LoadScene(EndScene);
 
