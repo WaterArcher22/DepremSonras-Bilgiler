@@ -16,7 +16,9 @@ public enum Sfx
     Click,          // Buton
     Stamp,          // PAYLAŞILDI / SİLİNDİ damgası
     VisitorEnter,   // Odaya biri geldi
-    VisitorLeave
+    VisitorLeave,
+    ComboUp,        // Kombo çarpanı yükseldi
+    ComboBreak      // Seri bozuldu
 }
 
 // Tüm sesler. Kök objeye konur, sahneler arası yok olmaz (müzik kesilmez).

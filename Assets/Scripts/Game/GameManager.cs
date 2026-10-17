@@ -46,6 +46,8 @@ public class GameManager : MonoBehaviour
     public StampView stamp;
     [Tooltip("Odaya gelen kişi (isteğe bağlı)")]
     public VisitorManager visitorManager;
+    [Tooltip("Puan ve kombo (isteğe bağlı)")]
+    public ScoreManager scoreManager;
 
     [Header("Masa pencereleri")]
     public MapWindow mapWindow;
@@ -63,6 +65,7 @@ public class GameManager : MonoBehaviour
     public bool IsGameOver => gameOver;
     public AccuracyBar Bar => accuracyBar;
     public FeedbackView Feedback => feedback;
+    public ScoreManager Score => scoreManager;
 
     NewsGenerator generator;
     NewsItem currentNews;
@@ -92,6 +95,7 @@ public class GameManager : MonoBehaviour
 
         nextChangeTime = firstChangeDelay;
         if (visitorManager) visitorManager.Begin(this);
+        if (scoreManager) scoreManager.Running = true;
 
         ShowNextNews();
     }
@@ -147,8 +151,21 @@ public class GameManager : MonoBehaviour
 
         if (stamp) stamp.ShowDecision(share);
 
-        if (isCorrect) { correct++; accuracyBar.ApplyCorrect(); GameJuice.Correct(); }
-        else           { wrong++;   accuracyBar.ApplyWrong();   GameJuice.Wrong(); }
+        if (isCorrect)
+        {
+            correct++;
+            if (scoreManager) scoreManager.NewsCorrect(newsTimeLeft);
+            // Kombo çarpanı barı da daha çok doldurur
+            accuracyBar.ApplyCorrect(accuracyBar.correctReward * (scoreManager ? scoreManager.BarMultiplier : 1f));
+            GameJuice.Correct();
+        }
+        else
+        {
+            wrong++;
+            if (scoreManager) scoreManager.Break();
+            accuracyBar.ApplyWrong();
+            GameJuice.Wrong();
+        }
 
         feedback.Show(isCorrect, explanation);
         FinishNews();
@@ -172,6 +189,7 @@ public class GameManager : MonoBehaviour
             else
             {
                 wrong++;
+                if (scoreManager) scoreManager.Break();
                 accuracyBar.ApplyWrong();
                 GameJuice.Wrong();
                 feedback.Show("YANLIŞ HABER YAYILDI!", GameJuice.BadColor, explanation);
@@ -180,6 +198,7 @@ public class GameManager : MonoBehaviour
         else
         {
             wrong++;
+            if (scoreManager) scoreManager.Break();
             accuracyBar.ApplyWrong(missPenalty);
             GameJuice.Wrong();
             feedback.Show("ZAMAN DOLDU!", GameJuice.BadColor, "Haber hakkında karar verilmedi. " + explanation);
@@ -227,8 +246,22 @@ public class GameManager : MonoBehaviour
         AudioManager.Play(Sfx.DeviceUpdate);
 
         // Neyin değiştiği söylenmez; sadece ilgili cihaz yanıp söner
+        int blinked = 0;
         foreach (var item in deskItems)
-            if (item && item.source == source) item.StartBlink();
+            if (item && item.source == source) { item.StartBlink(); blinked++; }
+
+        if (blinked == 0)
+            Debug.LogWarning($"Dünya değişti ({source}) ama Source'u '{source}' olan bir DeskItem bulunamadı. " +
+                             "Masa eşyalarındaki DeskItem > Source alanlarını kontrol edin.");
+        else
+            Debug.Log($"Dünya değişti: {source}");
+    }
+
+    // Test için: Play modunda GameManager'daki script başlığına sağ tıklayıp çalıştırın
+    [ContextMenu("TEST: Dünyayı şimdi değiştir")]
+    void TestWorldChange()
+    {
+        if (World != null) World.RandomChange();
     }
 
     void RefreshWindows()
@@ -258,13 +291,18 @@ public class GameManager : MonoBehaviour
         StopAllCoroutines();
 
         if (visitorManager) visitorManager.Stop();
+        if (scoreManager) scoreManager.Running = false;
         DeskWindow.CloseAll();
         AudioManager.SetAlarm(false);
 
         GameSession.SurvivedSeconds = ElapsedTime;
         GameSession.CorrectCount = correct;
         GameSession.WrongCount = wrong;
-        GameSession.Score = ScoreCalculator.Calculate(ElapsedTime, correct, wrong);
+        GameSession.Score = scoreManager
+            ? scoreManager.Score
+            : ScoreCalculator.Calculate(ElapsedTime, correct, wrong);
+        GameSession.MaxStreak = scoreManager ? scoreManager.MaxStreak : 0;
+        GameSession.SaveBestScore();
 
         StartCoroutine(GoToEnd());
     }
