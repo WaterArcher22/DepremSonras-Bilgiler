@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 601e713e87cefa848b820f3666424eaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
-  music: {fileID: 8300000, guid: 6405147ecc9eb4844bc9af23584b97d8, type: 3}
+  music: {fileID: 0}
   musicVolume: 0.4
   musicFadeTime: 0.6
   alarmLoop: {fileID: 8300000, guid: 9e45829d5dbe0594085ca00cdcb14494, type: 3}
@@ -66,10 +66,10 @@ MonoBehaviour:
     startTime: 1.2
     maxDuration: 3
   - type: 8
-    clip: {fileID: 8300000, guid: dafa7f0efd8fb2a4695c25ec32141f85, type: 3}
+    clip: {fileID: 8300000, guid: 8e83bd42f25e1d04b84d73fa4963b077, type: 3}
     volume: 1
-    startTime: 0.7
-    maxDuration: 1
+    startTime: 0.1
+    maxDuration: 3
   - type: 1
     clip: {fileID: 8300000, guid: 77a35e6892dea8a45bd79f38df1a3e71, type: 3}
     volume: 0.05
