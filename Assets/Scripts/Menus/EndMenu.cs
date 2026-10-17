@@ -28,6 +28,16 @@ public class EndMenu : MonoBehaviour
     [Tooltip("Rekor kırılınca görünecek obje (örn. 'YENİ REKOR!' yazısı)")]
     public GameObject newRecordObject;
 
+    [Header("İnsanlara etkisi (isteğe bağlı)")]
+    public TMP_Text helpedText;
+    public TMP_Text harmedText;
+    [Tooltip("Yanlış kararların sonuçlarının listelendiği yazı")]
+    public TMP_Text harmListText;
+    [Tooltip("Listede en fazla kaç sonuç gösterilsin")]
+    public int harmListMax = 3;
+    public string harmListTitle = "YANLIŞ BİLGİNİN BEDELİ:";
+    public string noHarmText = "Hiçbir yanlış bilgi senin masandan geçmedi.";
+
     [Header("Unvan (isteğe bağlı)")]
     public TMP_Text titleText;
     public TMP_Text titleDescriptionText;
@@ -63,6 +73,10 @@ public class EndMenu : MonoBehaviour
 
         if (newRecordObject) newRecordObject.SetActive(false);
 
+        SetText(helpedText, $"DOĞRU BİLGİYLE YARDIMA ULAŞAN: {Impact.FormatNumber(GameSession.PeopleHelped)} KİŞİ");
+        SetText(harmedText, $"YANLIŞ BİLGİDEN ETKİLENEN: {Impact.FormatNumber(GameSession.PeopleHarmed)} KİŞİ");
+        SetText(harmListText, BuildHarmList());
+
         var rank = GetRank(GameSession.Score);
         SetText(titleText, rank != null ? rank.title : "");
         SetText(titleDescriptionText, rank != null ? rank.description : "");
@@ -91,6 +105,19 @@ public class EndMenu : MonoBehaviour
             newRecordObject.SetActive(true);
             AudioManager.Play(Sfx.ComboUp);
         }
+    }
+
+    // Son yanlış kararların sonuçları (en yeniler)
+    string BuildHarmList()
+    {
+        var log = GameSession.HarmLog;
+        if (log.Count == 0) return noHarmText;
+
+        var sb = new System.Text.StringBuilder(harmListTitle);
+        int start = Mathf.Max(0, log.Count - harmListMax);
+        for (int i = start; i < log.Count; i++)
+            sb.Append("\n• ").Append(log[i]);
+        return sb.ToString();
     }
 
     Rank GetRank(int score)

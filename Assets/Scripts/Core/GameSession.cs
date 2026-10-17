@@ -19,6 +19,18 @@ public static class GameSession
     public static int BestScore;
     public static bool IsNewRecord;
 
+    // Kararların insanlar üzerindeki etkisi (bkz. Impact)
+    public static int PeopleHelped;
+    public static int PeopleHarmed;
+    public static System.Collections.Generic.List<string> HarmLog = new System.Collections.Generic.List<string>();
+
+    public static void ResetImpact()
+    {
+        PeopleHelped = 0;
+        PeopleHarmed = 0;
+        HarmLog.Clear();
+    }
+
     public static void LoadStart() => SceneManager.LoadScene(StartScene);
     public static void LoadIntro() => SceneManager.LoadScene(IntroScene);
     public static void LoadGame() => SceneManager.LoadScene(GameScene);
