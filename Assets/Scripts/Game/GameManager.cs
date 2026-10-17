@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using UnityEngine;
+using Random = UnityEngine.Random;
 using UnityEngine.UI;
 
 // GameScene'in beyni: dünyayı kurar ve değiştirir, haberleri getirir, kararları değerlendirir, oyunu bitirir.
@@ -54,6 +56,8 @@ public class GameManager : MonoBehaviour
     public VisitorManager visitorManager;
     [Tooltip("Puan ve kombo (isteğe bağlı)")]
     public ScoreManager scoreManager;
+    [Tooltip("Öğretici (isteğe bağlı). Boşsa oyun doğrudan başlar.")]
+    public TutorialManager tutorial;
 
     [Header("Masa pencereleri")]
     public MapWindow mapWindow;
@@ -63,6 +67,8 @@ public class GameManager : MonoBehaviour
     [Header("Akış")]
     [Tooltip("Karardan sonra yeni haber gelene kadar bekleme")]
     public float delayBetweenNews = 1.2f;
+    [Tooltip("Yanlış karardan sonra yeni haber, açıklama okunana kadar bekler (açıklama süresinin bu oranı kadar). 0 = beklemez.")]
+    [Range(0f, 1f)] public float waitForExplanationOnWrong = 0.8f;
     [Tooltip("Bar bittikten sonra bitiş sahnesine geçmeden önce bekleme")]
     public float delayBeforeEnd = 1.5f;
 
@@ -72,8 +78,14 @@ public class GameManager : MonoBehaviour
     public AccuracyBar Bar => accuracyBar;
     public FeedbackView Feedback => feedback;
     public ScoreManager Score => scoreManager;
+    public NewsGenerator Generator => generator;
+    public bool InTutorial { get; private set; }
+
+    // Öğreticide karar verilince (doğru muydu?)
+    public event Action<bool> OnTutorialDecision;
 
     NewsGenerator generator;
+    bool gameplayRunning;
     NewsItem currentNews;
     float newsTimeLeft, currentNewsDuration;
     int newsCount;
@@ -97,6 +109,32 @@ public class GameManager : MonoBehaviour
 
         accuracyBar.OnDepleted += EndGame;
         accuracyBar.ResetBar();
+        accuracyBar.IsRunning = false;
+
+        if (tutorial && tutorial.ShouldRun())
+        {
+            InTutorial = true;
+            tutorial.Begin(this);
+        }
+        else
+        {
+            StartGameplay();
+        }
+    }
+
+    // Asıl oyunu başlatır (öğretici bitince ya da öğretici yoksa hemen)
+    public void StartGameplay()
+    {
+        if (gameplayRunning || gameOver) return;
+        InTutorial = false;
+        gameplayRunning = true;
+
+        ClearNews();
+        foreach (var item in deskItems) if (item) item.StopBlink();
+
+        ElapsedTime = 0f;
+        newsCount = 0;
+        accuracyBar.ResetBar();
         accuracyBar.IsRunning = true;
 
         nextChangeTime = firstChangeDelay;
@@ -113,7 +151,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (gameOver) return;
+        if (gameOver || !gameplayRunning) return;
         ElapsedTime += Time.deltaTime;
         UpdateNewsTimer();
         UpdateWorldChanges();
@@ -157,6 +195,17 @@ public class GameManager : MonoBehaviour
 
         if (stamp) stamp.ShowDecision(share);
 
+        // Öğreticide bar, puan ve sayaçlar etkilenmez
+        if (InTutorial)
+        {
+            if (isCorrect) GameJuice.Correct(); else GameJuice.Wrong();
+            feedback.Show(isCorrect, explanation);
+            currentNews = null;
+            SetButtons(false);
+            OnTutorialDecision?.Invoke(isCorrect);
+            return;
+        }
+
         if (isCorrect)
         {
             correct++;
@@ -174,13 +223,14 @@ public class GameManager : MonoBehaviour
         }
 
         feedback.Show(isCorrect, explanation);
-        FinishNews();
+        FinishNews(!isCorrect);
     }
 
     void NewsTimedOut()
     {
         bool isTrue = currentNews.IsTrue(liveTruth);
         string explanation = currentNews.Explanation(liveTruth);
+        bool wasMistake = !isTrue || !timeoutCountsAsShare;
         AudioManager.Play(Sfx.Timeout);
 
         if (timeoutCountsAsShare)
@@ -210,20 +260,34 @@ public class GameManager : MonoBehaviour
             feedback.Show("ZAMAN DOLDU!", GameJuice.BadColor, "Haber hakkında karar verilmedi. " + explanation);
         }
 
-        FinishNews();
+        FinishNews(wasMistake);
     }
 
-    void FinishNews()
+    void FinishNews(bool wasMistake)
     {
         SetButtons(false);
         currentNews = null;
-        if (!gameOver) StartCoroutine(NextAfterDelay());
+        if (gameOver) return;
+
+        // Yanılınca açıklama okunsun diye yeni haber biraz bekler
+        float delay = delayBetweenNews;
+        if (wasMistake && feedback)
+            delay = Mathf.Max(delayBetweenNews, feedback.LastDuration * waitForExplanationOnWrong);
+
+        StartCoroutine(NextAfterDelay(delay));
     }
 
-    IEnumerator NextAfterDelay()
+    IEnumerator NextAfterDelay(float delay)
     {
         tv.Clear();
-        yield return new WaitForSeconds(delayBetweenNews);
+        float t = 0f;
+        while (t < delay)
+        {
+            // Oyuncu açıklamayı tıklayıp kapattıysa uzun beklemeye gerek yok
+            if (t >= delayBetweenNews && feedback && !feedback.IsVisible) break;
+            t += Time.deltaTime;
+            yield return null;
+        }
         ShowNextNews();
     }
 
@@ -275,6 +339,41 @@ public class GameManager : MonoBehaviour
         mapWindow.Setup(World);
         reportWindow.Setup(World);
         laptopWindow.Setup(World);
+    }
+
+    // ---------- Öğretici için ----------
+
+    // Belirli bir haberi süresiz olarak gösterir
+    public void ShowTutorialNews(NewsItem item)
+    {
+        if (item == null) return;
+        currentNews = item;
+        tv.Show(item.headline, item.sourceLabel, item.sourceType);
+        if (newsTimer) newsTimer.SetNormalized(1f);
+        SetButtons(true);
+    }
+
+    public void ClearNews()
+    {
+        currentNews = null;
+        SetButtons(false);
+        tv.Clear();
+    }
+
+    public void BlinkDevice(EvidenceSource source)
+    {
+        foreach (var item in deskItems)
+            if (item && item.source == source) item.StartBlink();
+    }
+
+    public DeskWindow WindowFor(EvidenceSource source)
+    {
+        switch (source)
+        {
+            case EvidenceSource.Map:    return mapWindow;
+            case EvidenceSource.Report: return reportWindow;
+            default:                    return laptopWindow;
+        }
     }
 
     // ---------- Diğer sistemler için ----------

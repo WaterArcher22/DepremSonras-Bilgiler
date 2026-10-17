@@ -228,14 +228,48 @@ public class NewsGenerator
         }
     }
 
+    // ---- Öğretici gibi belirli bir haber türü isteyen yerler için ----
+
+    // Belirli bir cihazdan doğrulanan, istenen doğrulukta bir haber
+    public NewsItem CreateDeskNews(EvidenceSource type, bool makeTrue)
+    {
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            NewsItem item;
+            switch (type)
+            {
+                case EvidenceSource.Map:    item = ServiceNews(makeTrue); break;
+                case EvidenceSource.Report: item = TeamNews(makeTrue); break;
+                default:                    item = RoadNews(makeTrue); break;
+            }
+            if (item != null)
+            {
+                AssignDeskNewsSource(item, makeTrue);
+                return item;
+            }
+        }
+        return null;
+    }
+
+    // Listedeki belirli bir bilgi haberi (0 = deprem tahmini)
+    public NewsItem CreateKnowledgeNews(int index)
+    {
+        index = Mathf.Clamp(index, 0, knowledgeNews.Length - 1);
+        lastKnowledgeIndex = index;
+        return BuildKnowledgeNews(knowledgeNews[index]);
+    }
+
     NewsItem CreateKnowledgeNews()
     {
         int index;
         do index = Random.Range(0, knowledgeNews.Length);
         while (knowledgeNews.Length > 1 && index == lastKnowledgeIndex);
         lastKnowledgeIndex = index;
+        return BuildKnowledgeNews(knowledgeNews[index]);
+    }
 
-        var k = knowledgeNews[index];
+    NewsItem BuildKnowledgeNews(KnowledgeNews k)
+    {
         var item = new NewsItem(k.headline, EvidenceSource.Map, () => k.isTrue, () => k.explanation)
         {
             isKnowledgeNews = true

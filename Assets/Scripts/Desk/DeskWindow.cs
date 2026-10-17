@@ -19,6 +19,8 @@ public abstract class DeskWindow : MonoBehaviour
     static readonly HashSet<DeskWindow> openWindows = new HashSet<DeskWindow>();
     public static bool AnyOpen => openWindows.Count > 0;
     public static event Action<bool> OnAnyOpenChanged;
+    // Belirli bir pencere açıldığında (öğretici bunu dinler)
+    public static event Action<DeskWindow> OnWindowOpened;
 
     public bool IsOpen => root && root.activeSelf;
 
@@ -44,6 +46,7 @@ public abstract class DeskWindow : MonoBehaviour
         StartCoroutine(Pop());
         AudioManager.Play(Sfx.WindowOpen);
         SetOpenState(true);
+        OnWindowOpened?.Invoke(this);
     }
 
     public void Close()
