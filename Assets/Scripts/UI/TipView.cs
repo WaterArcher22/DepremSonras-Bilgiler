@@ -4,7 +4,7 @@ using UnityEngine;
 
 // "BİLİYOR MUYDUN?" kutusu: gerçek hayatta işe yarayan afet hazırlığı ve bilgi doğrulama ipuçları.
 // StartScene ve EndScene'e koyun. Her açılışta rastgele bir ipucu gösterir;
-// isterseniz belli aralıklarla değiştirir.
+// Belli aralıklarla yenisine geçer ve hafifçe "nefes alır" (büyüyüp küçülür).
 public class TipView : MonoBehaviour
 {
     public TMP_Text tipText;
@@ -13,8 +13,19 @@ public class TipView : MonoBehaviour
     public string header = "BİLİYOR MUYDUN?";
 
     [Tooltip("0 = sadece bir ipucu göster. Değer girilirse o kadar saniyede bir yenisine geçer.")]
-    public float changeInterval = 0f;
+    public float changeInterval = 6f;
     public float fadeTime = 0.3f;
+
+    [Header("Nefes alma efekti")]
+    [Tooltip("Büyüyüp küçülecek obje. Boşsa ipucu yazısı kullanılır. Başlıkla birlikte büyümesi için ikisinin ortak ebeveynini verin.")]
+    public Transform breatheTarget;
+    [Tooltip("En fazla ne kadar büyüsün (1 = efekt yok)")]
+    public float breatheScale = 1.06f;
+    [Tooltip("Bir nefesin süresi (saniye)")]
+    public float breathePeriod = 2.5f;
+    [Tooltip("Yeni ipucu gelince küçük bir zıplama")]
+    public float changePop = 1.12f;
+    public float changePopTime = 0.25f;
 
     [TextArea(2, 4)]
     public string[] tips =
@@ -37,6 +48,8 @@ public class TipView : MonoBehaviour
 
     int lastIndex = -1;
     CanvasGroup group;
+    Vector3 baseScale;
+    float pop;   // 0..1, yeni ipucu gelince 1 olur ve söner
 
     void Start()
     {
@@ -45,8 +58,33 @@ public class TipView : MonoBehaviour
         group = tipText.GetComponent<CanvasGroup>();
         if (!group) group = tipText.gameObject.AddComponent<CanvasGroup>();
 
+        if (!breatheTarget) breatheTarget = tipText.transform;
+        baseScale = breatheTarget.localScale;
+
+        // Yazılar tıklamayı engellemesin
+        tipText.raycastTarget = false;
+        if (headerText) headerText.raycastTarget = false;
+
         ShowRandom();
         if (changeInterval > 0f) StartCoroutine(Cycle());
+    }
+
+    void Update()
+    {
+        if (!breatheTarget) return;
+
+        // Yavaş nefes: 0..1 arasında yumuşakça gidip gelir
+        float b = (1f - Mathf.Cos(Time.unscaledTime / Mathf.Max(0.1f, breathePeriod) * Mathf.PI * 2f)) * 0.5f;
+        float scale = Mathf.Lerp(1f, breatheScale, b);
+
+        // Yeni ipucu zıplaması
+        if (pop > 0f)
+        {
+            scale *= Mathf.Lerp(1f, changePop, pop);
+            pop = Mathf.Max(0f, pop - Time.unscaledDeltaTime / Mathf.Max(0.01f, changePopTime));
+        }
+
+        breatheTarget.localScale = baseScale * scale;
     }
 
     void ShowRandom()
@@ -68,6 +106,7 @@ public class TipView : MonoBehaviour
             yield return new WaitForSeconds(changeInterval);
             yield return Fade(1f, 0f);
             ShowRandom();
+            pop = 1f;
             yield return Fade(0f, 1f);
         }
     }

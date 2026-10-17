@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 3764292354504996824}
   - component: {fileID: 2470277419688374339}
-  - component: {fileID: 9100910069665126043}
   m_Layer: 0
   m_Name: AudioManager
   m_TagString: Untagged
@@ -45,10 +44,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 601e713e87cefa848b820f3666424eaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
-  music: {fileID: 0}
+  music: {fileID: 8300000, guid: 6405147ecc9eb4844bc9af23584b97d8, type: 3}
   musicVolume: 0.4
   musicFadeTime: 0.6
-  alarmLoop: {fileID: 0}
+  alarmLoop: {fileID: 8300000, guid: 9e45829d5dbe0594085ca00cdcb14494, type: 3}
   alarmVolume: 0.4
   effects:
   - type: 0
@@ -60,7 +59,7 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: eac63e2893b184c41bb9bd29178d429f, type: 3}
     volume: 0.5
     startTime: 1.2
-    maxDuration: 3
+    maxDuration: 1.8
   - type: 10
     clip: {fileID: 8300000, guid: ec1fa6d54af488a449e6f1c8fe6222d5, type: 3}
     volume: 0.1
@@ -88,19 +87,3 @@ MonoBehaviour:
     maxDuration: 0.6
   pitchVariation: 0.05
   voicesPerSound: 2
---- !u!114 &9100910069665126043
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6788646178969618141}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 134854c5ee3acd040ae3d9cd0c93453b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SceneAmbience
-  masterVolume: 1
-  fadeInTime: 2
-  loops: []
-  randomSounds: []

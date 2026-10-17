@@ -145,17 +145,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 317763231}
-  m_LocalRotation: {x: 0.009865066, y: -0.034449007, z: 0.2751246, w: 0.9607405}
-  m_LocalPosition: {x: 0, y: 0, z: 3.6}
+  m_LocalRotation: {x: 0.010461376, y: -0.04681922, z: 0.21781357, w: 0.97481066}
+  m_LocalPosition: {x: 0, y: 0, z: 3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1053059110}
-  m_LocalEulerAnglesHint: {x: 2.173, y: -3.486, z: 31.894}
+  m_LocalEulerAnglesHint: {x: 2.338, y: -4.979, z: 25.089}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -129.9, y: 10.9}
-  m_SizeDelta: {x: 262.7572, y: 45.3351}
+  m_AnchoredPosition: {x: -176, y: -50}
+  m_SizeDelta: {x: 233.5896, y: 53.9221}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &317763233
 MonoBehaviour:
@@ -172,8 +172,13 @@ MonoBehaviour:
   tipText: {fileID: 317763234}
   headerText: {fileID: 317763234}
   header: "B\u0130L\u0130YOR MUYDUN?"
-  changeInterval: 0
+  changeInterval: 4
   fadeTime: 0.3
+  breatheTarget: {fileID: 0}
+  breatheScale: 1.06
+  breathePeriod: 2.5
+  changePop: 1.12
+  changePopTime: 0.25
   tips:
   - "Depremler \xF6nceden tahmin edilemez. Saat ve tarih veren 'deprem tahmini' payla\u015F\u0131mlar\u0131na
     inanma."

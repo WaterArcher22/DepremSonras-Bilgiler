@@ -37,6 +37,8 @@ public class SceneAmbience : MonoBehaviour
         [Range(0f, 0.3f)] public float pitchVariation = 0.08f;
         [Tooltip("Sesin sağ/sol hoparlörde rastgele konumlanması (0 = tam ortada)")]
         [Range(0f, 1f)] public float stereoSpread = 0.6f;
+        [Tooltip("Ses en fazla bu kadar saniye çalar, sonra yavaşça kısılır (uzun kayıtlar için). 0 = sonuna kadar çalar.")]
+        public float maxDuration = 6f;
     }
 
     [Header("Genel")]
@@ -95,11 +97,33 @@ public class SceneAmbience : MonoBehaviour
             var clip = r.clips[Random.Range(0, r.clips.Length)];
             if (clip)
             {
+                float volume = Random.Range(r.minVolume, r.maxVolume) * masterVolume * fade;
+                src.clip = clip;
+                src.loop = false;
                 src.pitch = 1f + Random.Range(-r.pitchVariation, r.pitchVariation);
                 src.panStereo = Random.Range(-r.stereoSpread, r.stereoSpread);
-                src.PlayOneShot(clip, Random.Range(r.minVolume, r.maxVolume) * masterVolume * fade);
+                src.volume = volume;
+                src.Play();
+
+                // Ses bitene (ya da süre sınırına gelene) kadar bekle
+                float length = clip.length / Mathf.Max(0.1f, Mathf.Abs(src.pitch));
+                float playTime = r.maxDuration > 0f ? Mathf.Min(length, r.maxDuration) : length;
+                yield return new WaitForSeconds(playTime);
+
+                // Sınıra gelindiyse kısarak kes
+                if (src.isPlaying)
+                {
+                    const float fadeOut = 1f;
+                    for (float t = 0f; t < fadeOut; t += Time.deltaTime)
+                    {
+                        src.volume = Mathf.Lerp(volume, 0f, t / fadeOut);
+                        yield return null;
+                    }
+                    src.Stop();
+                }
             }
 
+            // Bekleme, ses bittikten sonra başlar
             float wait = Random.Range(r.minInterval, Mathf.Max(r.minInterval, r.maxInterval));
             yield return new WaitForSeconds(wait);
         }
