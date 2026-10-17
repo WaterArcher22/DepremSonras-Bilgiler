@@ -132,7 +132,13 @@ public class VisitorManager : MonoBehaviour
             else
             {
                 game.CountResult(true);
-                game.Bar.ApplyCorrect(correctReward);
+                float barMultiplier = 1f;
+                if (game.Score)
+                {
+                    game.Score.VisitorCorrect();
+                    barMultiplier = game.Score.BarMultiplier;
+                }
+                game.Bar.ApplyCorrect(correctReward * barMultiplier);
                 game.Feedback.Show(true, explanation);
                 GameJuice.Correct();
                 if (yes) req.onYesCorrect?.Invoke();
@@ -141,6 +147,7 @@ public class VisitorManager : MonoBehaviour
         else
         {
             game.CountResult(false);
+            if (game.Score) game.Score.Break();
             game.Bar.ApplyWrong(wrongPenalty);
             game.Feedback.Show(false, explanation);
             GameJuice.Wrong();
@@ -151,6 +158,7 @@ public class VisitorManager : MonoBehaviour
 
     void Ignored()
     {
+        if (game.Score) game.Score.Break();
         game.Bar.ApplyWrong(ignorePenalty);
         game.Feedback.Show("CEVAPSIZ KALDI!", GameJuice.BadColor, "Gelen kişi cevap alamadan gitti.");
         GameJuice.Wrong();
