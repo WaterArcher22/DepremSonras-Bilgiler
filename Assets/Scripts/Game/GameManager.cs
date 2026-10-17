@@ -9,6 +9,12 @@ public class GameManager : MonoBehaviour
     public WorldState.Settings worldSettings = new WorldState.Settings();
     [Range(0f, 1f)] public float trueNewsChance = 0.5f;
 
+    [Header("Haber türleri ve kaynaklar")]
+    [Tooltip("Haberlerin ne kadarı masaya bakmadan, genel bilgiyle çözülen türden olsun (deprem tahmini, sahte bağış vb.)")]
+    [Range(0f, 1f)] public float knowledgeNewsChance = 0.25f;
+    [Tooltip("Masadan doğrulanan haberlerde kaynağın ne kadar ipucu verdiği (0.5 = hiç, 1 = her zaman)")]
+    [Range(0.5f, 1f)] public float sourceReliability = 0.7f;
+
     [Header("Haber süresi")]
     [Tooltip("İlk haberin süresi (saniye)")]
     public float newsDurationStart = 12f;
@@ -80,7 +86,7 @@ public class GameManager : MonoBehaviour
     {
         World = WorldState.Generate(worldSettings);
         World.OnChanged += HandleWorldChanged;
-        generator = new NewsGenerator(World, trueNewsChance);
+        generator = new NewsGenerator(World, trueNewsChance, knowledgeNewsChance, sourceReliability);
 
         RefreshWindows();
         deskItems = FindObjectsByType<DeskItem>(FindObjectsSortMode.None);
@@ -123,7 +129,7 @@ public class GameManager : MonoBehaviour
         newsTimeLeft = currentNewsDuration;
         newsCount++;
 
-        tv.Show(currentNews.headline);
+        tv.Show(currentNews.headline, currentNews.sourceLabel, currentNews.sourceType);
         SetButtons(true);
     }
 

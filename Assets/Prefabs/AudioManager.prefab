@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6788646178969618141
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3764292354504996824}
+  - component: {fileID: 2470277419688374339}
+  - component: {fileID: 9100910069665126043}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3764292354504996824
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6788646178969618141}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1006.1058, y: 456.69556, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2470277419688374339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6788646178969618141}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 601e713e87cefa848b820f3666424eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  music: {fileID: 0}
+  musicVolume: 0.4
+  musicFadeTime: 0.6
+  alarmLoop: {fileID: 0}
+  alarmVolume: 0.4
+  effects:
+  - type: 0
+    clip: {fileID: 8300000, guid: 7d6cd4abd56f9994b86f143b8f096030, type: 3}
+    volume: 0.1
+    startTime: 0
+    maxDuration: 0.2
+  - type: 9
+    clip: {fileID: 8300000, guid: eac63e2893b184c41bb9bd29178d429f, type: 3}
+    volume: 0.5
+    startTime: 1.2
+    maxDuration: 3
+  - type: 10
+    clip: {fileID: 8300000, guid: ec1fa6d54af488a449e6f1c8fe6222d5, type: 3}
+    volume: 0.1
+    startTime: 1.2
+    maxDuration: 3
+  - type: 8
+    clip: {fileID: 8300000, guid: dafa7f0efd8fb2a4695c25ec32141f85, type: 3}
+    volume: 1
+    startTime: 0.7
+    maxDuration: 1
+  - type: 1
+    clip: {fileID: 8300000, guid: 77a35e6892dea8a45bd79f38df1a3e71, type: 3}
+    volume: 0.05
+    startTime: 0
+    maxDuration: 1
+  - type: 2
+    clip: {fileID: 8300000, guid: 59ae28f8ceee2a34bb83c54ed64788bb, type: 3}
+    volume: 0.3
+    startTime: 0
+    maxDuration: 1
+  - type: 4
+    clip: {fileID: 8300000, guid: 604c71b4784222d4aa5aec8c64635802, type: 3}
+    volume: 1
+    startTime: 0
+    maxDuration: 0.6
+  pitchVariation: 0.05
+  voicesPerSound: 2
+--- !u!114 &9100910069665126043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6788646178969618141}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 134854c5ee3acd040ae3d9cd0c93453b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneAmbience
+  masterVolume: 1
+  fadeInTime: 2
+  loops: []
+  randomSounds: []
