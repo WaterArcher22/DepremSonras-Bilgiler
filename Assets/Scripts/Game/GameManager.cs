@@ -343,14 +343,19 @@ public class GameManager : MonoBehaviour
 
     // ---------- Öğretici için ----------
 
-    // Belirli bir haberi süresiz olarak gösterir
+    // Belirli bir haberi süresiz olarak gösterir. Paylaş / Sil, öğretici izin verene kadar kilitli kalır.
     public void ShowTutorialNews(NewsItem item)
     {
         if (item == null) return;
         currentNews = item;
         tv.Show(item.headline, item.sourceLabel, item.sourceType);
         if (newsTimer) newsTimer.SetNormalized(1f);
-        SetButtons(true);
+        SetButtons(false);
+    }
+
+    public void SetDecisionButtons(bool on)
+    {
+        SetButtons(on && currentNews != null);
     }
 
     public void ClearNews()

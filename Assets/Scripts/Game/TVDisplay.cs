@@ -33,6 +33,9 @@ public class TVDisplay : MonoBehaviour, IPointerClickHandler
 
     Coroutine typing;
     string fullHeadline;
+
+    // Haber hâlâ yazılıyor mu (öğretici bunu bekler)
+    public bool IsTyping => typing != null;
     string sourceLine;   // Rich text ile hazırlanmış kaynak satırı (haberle aynı yazıdaysa)
 
     public void Show(string headline) => Show(headline, null, NewsSourceType.Media);

@@ -37,6 +37,10 @@ public class DeskItem : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
 
     public bool IsBlinking => blinking;
 
+    // Öğretici gibi sistemler hangi eşyaların tıklanabileceğini sınırlayabilir. null = hepsi serbest.
+    public static System.Func<DeskItem, bool> CanInteract;
+    bool Interactable => CanInteract == null || CanInteract(this);
+
     Image image;
     SpriteRenderer spriteRenderer;
     Sprite normalSprite;
@@ -64,11 +68,12 @@ public class DeskItem : MonoBehaviour, IPointerClickHandler, IPointerEnterHandle
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (!Interactable) return;
         StopBlink();
         if (window) window.Toggle();
     }
 
-    public void OnPointerEnter(PointerEventData eventData) => hovering = true;
+    public void OnPointerEnter(PointerEventData eventData) => hovering = Interactable;
     public void OnPointerExit(PointerEventData eventData) => hovering = false;
 
     void OnDisable()
