@@ -58,6 +58,8 @@ public class GameManager : MonoBehaviour
     public ScoreManager scoreManager;
     [Tooltip("Öğretici (isteğe bağlı). Boşsa oyun doğrudan başlar.")]
     public TutorialManager tutorial;
+    [Tooltip("Kararın insanlara etkisini gösteren 'Saha raporu' şeridi (isteğe bağlı)")]
+    public ImpactView impactView;
 
     [Header("Masa pencereleri")]
     public MapWindow mapWindow;
@@ -96,6 +98,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        GameSession.ResetImpact();
         World = WorldState.Generate(worldSettings);
         World.OnChanged += HandleWorldChanged;
         generator = new NewsGenerator(World, trueNewsChance, knowledgeNewsChance, sourceReliability);
@@ -200,6 +203,7 @@ public class GameManager : MonoBehaviour
         {
             if (isCorrect) GameJuice.Correct(); else GameJuice.Wrong();
             feedback.Show(isCorrect, explanation);
+            ReportImpact(currentNews, share, isTrue, false);   // Öğreticide gösterilir ama sayılmaz
             currentNews = null;
             SetButtons(false);
             OnTutorialDecision?.Invoke(isCorrect);
@@ -223,6 +227,7 @@ public class GameManager : MonoBehaviour
         }
 
         feedback.Show(isCorrect, explanation);
+        ReportImpact(currentNews, share, isTrue, true);
         FinishNews(!isCorrect);
     }
 
@@ -250,6 +255,7 @@ public class GameManager : MonoBehaviour
                 GameJuice.Wrong();
                 feedback.Show("YANLIŞ HABER YAYILDI!", GameJuice.BadColor, explanation);
             }
+            ReportImpact(currentNews, true, isTrue, true);
         }
         else
         {
@@ -258,9 +264,34 @@ public class GameManager : MonoBehaviour
             accuracyBar.ApplyWrong(missPenalty);
             GameJuice.Wrong();
             feedback.Show("ZAMAN DOLDU!", GameJuice.BadColor, "Haber hakkında karar verilmedi. " + explanation);
+            // Doğru haber hiç yayımlanmadıysa insanlar ondan habersiz kaldı
+            if (isTrue) ReportImpact(currentNews, false, true, true);
         }
 
         FinishNews(wasMistake);
+    }
+
+    // Kararın insanlara etkisi: şeritte gösterilir, sayılır ve bitiş ekranı için kaydedilir
+    void ReportImpact(NewsItem news, bool shared, bool isTrue, bool record)
+    {
+        if (news == null) return;
+        var result = Impact.Evaluate(news, shared, isTrue);
+
+        if (record)
+        {
+            if (result.good) GameSession.PeopleHelped += result.people;
+            else
+            {
+                GameSession.PeopleHarmed += result.people;
+                GameSession.HarmLog.Add(result.text);
+            }
+        }
+
+        if (impactView)
+        {
+            impactView.Show(result);
+            if (record) impactView.UpdateTotals(GameSession.PeopleHelped, GameSession.PeopleHarmed);
+        }
     }
 
     void FinishNews(bool wasMistake)

@@ -6,6 +6,9 @@ using Random = UnityEngine.Random;
 // Haberin nereden geldiği. Kaynak bir ipucudur, kesin kanıt değil.
 public enum NewsSourceType { Official, Media, Unverified }
 
+// Haberin konusu (kararın insanlar üzerindeki etkisini anlatmak için)
+public enum NewsKind { Service, Team, Road, Knowledge }
+
 // Bir haber. Doğruluğu dünyaya bakılarak hesaplanır;
 // böylece dünya değişirse ekrandaki haberin doğru cevabı da değişebilir.
 public class NewsItem
@@ -15,6 +18,13 @@ public class NewsItem
     public string sourceLabel;          // Ekranda görünen kaynak, örn. "@sondakika_haber123"
     public NewsSourceType sourceType;
     public bool isKnowledgeNews;        // Masaya bakmadan, genel bilgiyle çözülen haber mi?
+
+    // Etki mesajları için haberin ayrıntıları
+    public NewsKind kind;
+    public string place;                // Bölge ya da yol adı
+    public ServiceType service;
+    public TeamType team;
+    public bool claimOpen;              // Yol haberi "açık" mı diyor?
 
     Func<bool> check;                   // Dünyanın şu anki haline göre doğru mu?
     Func<string> explain;               // Dünyanın şu anki haline göre açıklama
@@ -272,7 +282,8 @@ public class NewsGenerator
     {
         var item = new NewsItem(k.headline, EvidenceSource.Map, () => k.isTrue, () => k.explanation)
         {
-            isKnowledgeNews = true
+            isKnowledgeNews = true,
+            kind = NewsKind.Knowledge
         };
         // Doğru uyarılar resmi kurumlardan, dezenformasyon doğrulanmamış kaynaklardan gelir
         SetSource(item, k.isTrue ? NewsSourceType.Official : NewsSourceType.Unverified);
@@ -307,7 +318,8 @@ public class NewsGenerator
             () => w.HasService(region, service),
             () => w.HasService(region, service)
                 ? $"Haritada {name} bölgesinde {serviceName} işareti var."
-                : $"Haritada {name} bölgesinde {serviceName} işareti yok.");
+                : $"Haritada {name} bölgesinde {serviceName} işareti yok.")
+        { kind = NewsKind.Service, place = name, service = service };
     }
 
     NewsItem TeamNews(bool makeTrue)
@@ -327,7 +339,8 @@ public class NewsGenerator
             () => w.HasTeam(region, type),
             () => w.HasTeam(region, type)
                 ? $"Görevlendirme raporuna göre {name} bölgesinde {teamName} çalışıyor."
-                : $"Görevlendirme raporunda {name} bölgesine {teamName} atanmamış.");
+                : $"Görevlendirme raporunda {name} bölgesine {teamName} atanmamış.")
+        { kind = NewsKind.Team, place = name, team = type };
     }
 
     NewsItem RoadNews(bool makeTrue)
@@ -341,6 +354,7 @@ public class NewsGenerator
             string.Format(Utils.Pick(claimOpen ? roadOpenTemplates : roadClosedTemplates), name),
             EvidenceSource.Laptop,
             () => w.roadOpen[road] == claimOpen,
-            () => $"Laptopta {name} {(w.roadOpen[road] ? "yeşil, yani açık" : "kırmızı, yani kapalı")}.");
+            () => $"Laptopta {name} {(w.roadOpen[road] ? "yeşil, yani açık" : "kırmızı, yani kapalı")}.")
+        { kind = NewsKind.Road, place = name, claimOpen = claimOpen };
     }
 }
