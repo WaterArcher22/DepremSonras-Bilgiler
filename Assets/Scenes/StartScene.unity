@@ -435,8 +435,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 37.2719, y: 8.931}
-  m_SizeDelta: {x: 129.7642, y: 27.3987}
+  m_AnchoredPosition: {x: 4.587695, y: 9.692355}
+  m_SizeDelta: {x: 115.54, y: 23.30825}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &506800315
 MonoBehaviour:
@@ -495,14 +495,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.007843138}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -555,8 +555,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 37.272972, y: -72.53815}
-  m_SizeDelta: {x: 129.76, y: 23.7992}
+  m_AnchoredPosition: {x: 5.464795, y: -73.25211}
+  m_SizeDelta: {x: 113.78542, y: 22.89498}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &588965903
 MonoBehaviour:
@@ -956,8 +956,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 35.590942, y: 0}
-  m_SizeDelta: {x: 71.181885, y: 0}
+  m_AnchoredPosition: {x: 5.5998535, y: 0}
+  m_SizeDelta: {x: 11.19977, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1428276751
 MonoBehaviour:
@@ -1156,8 +1156,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 31.789307, y: -191.4458}
-  m_SizeDelta: {x: 723.3604, y: 179.8103}
+  m_AnchoredPosition: {x: 5.8214006, y: -31.695843}
+  m_SizeDelta: {x: 113.07153, y: 22.25673}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1759389509
 MonoBehaviour:
