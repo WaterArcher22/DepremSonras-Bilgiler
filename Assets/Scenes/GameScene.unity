@@ -13983,6 +13983,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2470277419688374339, guid: b18bfab924ce144418103b005ae2f4be, type: 3}
+      propertyPath: effects.Array.data[3].clip
+      value: 
+      objectReference: {fileID: 8300000, guid: 8e83bd42f25e1d04b84d73fa4963b077, type: 3}
+    - target: {fileID: 2470277419688374339, guid: b18bfab924ce144418103b005ae2f4be, type: 3}
+      propertyPath: effects.Array.data[3].volume
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2470277419688374339, guid: b18bfab924ce144418103b005ae2f4be, type: 3}
+      propertyPath: effects.Array.data[3].startTime
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2470277419688374339, guid: b18bfab924ce144418103b005ae2f4be, type: 3}
+      propertyPath: effects.Array.data[3].maxDuration
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 3764292354504996824, guid: b18bfab924ce144418103b005ae2f4be, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1006.1058
