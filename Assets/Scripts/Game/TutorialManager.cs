@@ -24,6 +24,15 @@ public class TutorialManager : MonoBehaviour
     [Tooltip("'ADIM 2/4' yazısı (isteğe bağlı)")]
     public TMP_Text stepText;
 
+    [Header("Arka planı karartma")]
+    [Tooltip("Tam ekran siyah Image. Hierarchy'de öğretici kutusunun hemen ÜSTÜNDE olmalı (kutu önde çizilsin).")]
+    public Image dimOverlay;
+    [Tooltip("Metin sayfalarında (DEVAM butonlu) karartma miktarı")]
+    [Range(0f, 1f)] public float dimAlpha = 0.65f;
+    [Tooltip("Cihaz / karar adımlarında karartma. 0 önerilir: oyuncunun TV'yi ve masayı görmesi gerekir.")]
+    [Range(0f, 1f)] public float stepDimAlpha = 0f;
+    public float dimFadeTime = 0.25f;
+
     [Header("Dikkat sırası")]
     [Tooltip("Haber yazıldıktan sonra, öğretici kutusu belirmeden önce haberin okunması için bekleme")]
     public float newsReadTime = 1.5f;
@@ -103,6 +112,7 @@ public class TutorialManager : MonoBehaviour
     readonly List<Highlight> highlights = new List<Highlight>();
 
     GameManager game;
+    float dimTarget, dimCurrent;
     bool continuePressed;
     bool decisionMade;
     DeskWindow awaitedWindow;
@@ -118,6 +128,7 @@ public class TutorialManager : MonoBehaviour
         if (stepText) stepText.raycastTarget = false;
 
         if (root) root.SetActive(false);
+        SetDim(0f);
         continueButton.onClick.AddListener(() => continuePressed = true);
         if (skipButton) skipButton.onClick.AddListener(Finish);
     }
@@ -242,11 +253,13 @@ public class TutorialManager : MonoBehaviour
 
     IEnumerator Say(string text, string buttonText)
     {
+        dimTarget = dimAlpha;
         continuePressed = false;
         ShowMessage(text, true, buttonText);
         AddHighlight(continueButton);
         while (!continuePressed) yield return null;
         ClearHighlights();
+        dimTarget = stepDimAlpha;
     }
 
     // ---------- Kutu ----------
@@ -333,6 +346,7 @@ public class TutorialManager : MonoBehaviour
 
     void Update()
     {
+        UpdateDim();
         if (highlights.Count == 0) return;
 
         // 0 ile 1 arasında gidip gelen değer
@@ -382,8 +396,30 @@ public class TutorialManager : MonoBehaviour
         PlayerPrefs.Save();
 
         root.SetActive(false);
+        dimTarget = 0f;   // Update yavaşça açar
         DeskWindow.CloseAll();
         game.StartGameplay();
+    }
+
+    // ---------- Karartma ----------
+
+    void UpdateDim()
+    {
+        if (!dimOverlay) return;
+        float speed = dimFadeTime > 0f ? Time.unscaledDeltaTime / dimFadeTime : 1f;
+        dimCurrent = Mathf.MoveTowards(dimCurrent, dimTarget, speed);
+        SetDim(dimCurrent);
+    }
+
+    void SetDim(float a)
+    {
+        if (!dimOverlay) return;
+        var c = dimOverlay.color;
+        c.a = a;
+        dimOverlay.color = c;
+        bool visible = a > 0.001f;
+        if (dimOverlay.gameObject.activeSelf != visible) dimOverlay.gameObject.SetActive(visible);
+        dimOverlay.raycastTarget = visible;   // Karanlıkken arkadaki şeylere tıklanamaz
     }
 
     void Unsubscribe()
