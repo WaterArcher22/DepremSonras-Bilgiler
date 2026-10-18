@@ -80,7 +80,7 @@ Oyun tamamen **fare** ile oynanır.
 
 | İsim | Rol |
 |---|---|
-| Deniz Murat, Efe Özgür| [Programlama / Tasarım] |
+| Deniz Murat, Efe Özgür| [Programlama / Tasarım / Ses] |
 | Ömür Çamurcu | [Pixel art] |
 
 ---
@@ -113,7 +113,6 @@ kaynak: Freesound / Pixabay
 **Yapay zekânın kullanıldığı kısımlar:**
 - **Kodlama:** Yapay zekâ (Anthropic Claude) bir kodlama asistanı olarak kullanılmıştır. C# script'lerinin önemli bir kısmının ilk taslakları yapay zekâ ile yazılmış; ekibimiz bu kodları projeye entegre etmiş, Unity'de bağlamış, test etmiş ve isteklerimiz doğrultusunda defalarca düzenlemiştir.
 - **Hata ayıklama:** Hata mesajlarının ve beklenmeyen davranışların çözümünde yardımcı olarak kullanılmıştır.
-- **Çizim Kısmı:** Font generation ve pixel boyut düzenlemeleri için kullanılmıştır.
 - **Metinler:** Oyun içi haber metinlerinin ve afete hazırlık ipuçlarının bir kısmının taslağı yapay zekâ ile hazırlanmış, ekibimiz tarafından gözden geçirilmiştir.
 
 Oyundaki afete hazırlık bilgileri genel kabul görmüş tavsiyelere dayanır. Gerçek bir afet durumunda lütfen **resmi kurumların** (AFAD, 112 vb.) duyurularını takip edin.
