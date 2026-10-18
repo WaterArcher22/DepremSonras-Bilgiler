@@ -356,7 +356,7 @@ MonoBehaviour:
   breakingSound: {fileID: 0}
   rumbleVolume: 1
   breakingVolume: 1
-  skipLockTime: 0.5
+  skipLockTime: 100
 --- !u!1 &893178726
 GameObject:
   m_ObjectHideFlags: 0
