@@ -351,9 +351,9 @@ MonoBehaviour:
   shakeRate: 30
   breakingShakeTime: 0.4
   breakingShakeStrength: 4
-  audioSource: {fileID: 0}
-  rumbleSound: {fileID: 0}
-  breakingSound: {fileID: 0}
+  audioSource: {fileID: 788009159}
+  rumbleSound: {fileID: 8300000, guid: 961879ab6fc6f674986080c59027eed8, type: 3}
+  breakingSound: {fileID: 8300000, guid: e66ad84a6d2bb2548b873800e16cfa3c, type: 3}
   rumbleVolume: 1
   breakingVolume: 1
   skipLockTime: 100
