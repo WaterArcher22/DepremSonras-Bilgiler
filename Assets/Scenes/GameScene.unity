@@ -4724,8 +4724,8 @@ MonoBehaviour:
     PAYLA\u015E, yanl\u0131\u015Fsa S\u0130L"
   laptopOpenText: "Bu haber bir YOLDAN bahsediyor.\nYollar\u0131n durumunu yan\u0131p
     s\xF6nen LAPTOPTAN kontrol et."
-  laptopDecideText: "\xDCnlem = Kapal\u0131\nPencereyi kapat ve karar\u0131n\u0131
-    ver: PAYLA\u015E ya da S\u0130L."
+  laptopDecideText: "\xDCnlem = Kapal\u0131\nK\xF6\u015Fedi X butonu ile  Pencereyi
+    kapat ve karar\u0131n\u0131 ver: PAYLA\u015E ya da S\u0130L."
   mapOpenText: "Su, yemek ve \xE7ad\u0131r da\u011F\u0131t\u0131mlar\u0131 HAR\u0130TADA
     g\xF6r\xFCn\xFCr.\nYan\u0131p s\xF6nen haritay\u0131 a\xE7, haberdeki b\xF6lgeye
     bak."
